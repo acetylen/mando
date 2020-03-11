@@ -186,22 +186,30 @@ class Program(SubProgram):
 
         command = arg_map.pop(_DISPATCH_TO)
         sig = self._signatures[command.__name__]
-        real_args = []
-        for name, arg in sig.parameters.items():
-            if arg.kind is arg.VAR_POSITIONAL:
-                if arg_map.get(name):
-                    real_args.extend(arg_map.pop(name))
+        posargs = []
+        kwargs = {}
+        for name, param in sig.parameters.items():
+            if name not in arg_map:
+                continue
+            # variadics
+            if param.kind is param.VAR_KEYWORD:  # probably can't occur
+                kwargs.update(arg_map.pop(name))
+            elif param.kind is param.VAR_POSITIONAL:
+                posargs.extend(arg_map.pop(name))
+            # regular arguments
+            elif param.kind is param.KEYWORD_ONLY:
+                kwargs[name] = arg_map.pop(name)
             else:
-                real_args.append(arg_map.pop(name))
-        return command, real_args
+                posargs.append(arg_map.pop(name))
+        return command, posargs, kwargs
 
     def execute(self, args):
         '''Parse the arguments and execute the resulting command.
 
         :param args: The arguments to parse.'''
-        command, a = self.parse(args)
+        command, posargs, kwargs = self.parse(args)
         self._current_command = command.__name__
-        return command(*a)
+        return command(*posargs, **kwargs)
 
     def __call__(self):  # pragma: no cover
         '''Parse ``sys.argv`` and execute the resulting command.'''
