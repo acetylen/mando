@@ -192,16 +192,17 @@ class Program(SubProgram):
             if name not in arg_map:
                 continue
             arg = arg_map.pop(name)
-            # variadics
-            if param.kind is param.VAR_KEYWORD:  # probably can't occur
-                kwargs.update(arg)
-            elif param.kind is param.VAR_POSITIONAL:
-                posargs.extend(arg)
+            
             # regular arguments
+            if param.kind in (param.POSITIONAL_ONLY, param.POSITIONAL_OR_KEYWORD):
+                posargs.append(arg)
             elif param.kind is param.KEYWORD_ONLY:
                 kwargs[name] = arg
-            elif param.kind in (param.POSITIONAL_ONLY, param.POSITIONAL_OR_KEYWORD):
-                posargs.append(arg)
+            # variadics
+            elif param.kind is param.VAR_POSITIONAL:
+                posargs.extend(arg)
+            elif param.kind is param.VAR_KEYWORD:  # probably can't occur
+                kwargs.update(arg)
             else:
                 raise RuntimeError("Unhandled parameter kind %s" % param.kind)
 
